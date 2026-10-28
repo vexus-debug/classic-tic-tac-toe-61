@@ -35,6 +35,9 @@ import { CreateLabCaseDialog } from "@/components/dashboard/CreateLabCaseDialog"
 import { PatientLabCasesSection, usePatientLabCases, isLabCaseActive } from "@/components/dashboard/PatientLabCasesSection";
 import { toast } from "@/hooks/use-toast";
 import { OfflineDentalHistorySection } from "@/components/dashboard/OfflineDentalHistorySection";
+import { PatientOdontogram } from "@/components/dashboard/PatientOdontogram";
+import { PHASES, procedurePhase } from "@/lib/dentalPhases";
+import { useUpdatePlanItemStatus } from "@/hooks/useTreatmentPlans";
 import { openPatientDocument } from "@/lib/documentUtils";
 import { printPrescription } from "@/lib/printPrescription";
 import { PatientVisitBar } from "@/components/dashboard/PatientVisitBar";
@@ -175,6 +178,7 @@ export default function PatientProfilePage() {
   const { data: patient, isLoading } = usePatientDetail(patientId);
   const { data: visits = [] } = usePatientVisits(patientId);
   const { data: plans = [] } = usePatientTreatmentPlans(patientId);
+  const updateItemStatus = useUpdatePlanItemStatus();
   const { data: invoices = [] } = usePatientInvoices(patientId);
   const { data: prescriptions = [] } = usePatientPrescriptions(patientId);
   const { data: clinicalNotes = [] } = useClinicalNotes(patientId);
@@ -406,6 +410,7 @@ export default function PatientProfilePage() {
 
         {/* Dental History */}
         <TabsContent value="history" className="mt-4 space-y-4">
+          {terms.showDentalChart && patientId && <PatientOdontogram patientId={patientId} canEdit={canEditClinical} />}
           {/* Dental Chart Summary */}
           {terms.showDentalChart && dentalEntries.length > 0 && (
             <Card>
@@ -472,42 +477,61 @@ export default function PatientProfilePage() {
         {/* Treatment Plans */}
         <TabsContent value="plans" className="mt-4 space-y-4">
           {plans.length === 0 ? (
-            <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">No treatment plans found.</CardContent></Card>
+            <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">No treatment plans yet. Chart a finding on the odontogram and tap "Add to plan".</CardContent></Card>
           ) : plans.map((plan: any) => {
-            const procs = plan.treatment_plan_procedures || [];
-            const completedCount = procs.filter((p: any) => p.status === "done").length;
-            const progress = procs.length ? Math.round((completedCount / procs.length) * 100) : 0;
+            const items = (plan.treatment_plan_items || []).filter((i: any) => i.status !== "skipped");
+            const doneCount = items.filter((i: any) => i.status === "completed").length;
+            const progress = items.length ? Math.round((doneCount / items.length) * 100) : 0;
+            const total = items.reduce((s: number, i: any) => s + Number(i.estimated_cost || 0), 0);
             return (
               <Card key={plan.id}>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-sm">{plan.name}</CardTitle>
-                      <CardDescription>{plan.start_date} → {plan.estimated_end || "Ongoing"}</CardDescription>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <CardTitle className="text-sm truncate">{plan.plan_name}</CardTitle>
+                      <CardDescription>{plan.start_date || "—"} → {plan.target_end_date || "Ongoing"}</CardDescription>
                     </div>
-                    <Badge className={plan.status === "active" ? "bg-blue-100 text-blue-700" : plan.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-700"}>
-                      {plan.status}
-                    </Badge>
+                    <Badge variant={plan.status === "active" ? "default" : "outline"} className="capitalize">{plan.status}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Progress value={progress} className="flex-1 h-2" />
-                    <span className="text-xs font-medium">{progress}%</span>
+                    <span className="text-xs font-medium">{doneCount}/{items.length}</span>
                   </div>
-                  <div className="space-y-2">
-                    {procs.map((proc: any, i: number) => (
-                      <div key={i} className="flex items-center gap-2 text-sm">
-                        <span className={`h-2 w-2 rounded-full ${proc.status === "done" ? "bg-emerald-500" : "bg-gray-300"}`} />
-                        <span className={proc.status === "done" ? "line-through text-muted-foreground" : ""}>{proc.procedure_name}</span>
-                        {proc.completed_date && <span className="text-xs text-muted-foreground ml-auto">{proc.completed_date}</span>}
+                  {PHASES.map((ph) => {
+                    const list = items.filter((i: any) => procedurePhase(i.description) === ph.id);
+                    if (!list.length) return null;
+                    const sub = list.reduce((s: number, i: any) => s + Number(i.estimated_cost || 0), 0);
+                    return (
+                      <div key={ph.id} className="rounded-md border border-border/60">
+                        <div className="flex items-center justify-between bg-muted/40 px-3 py-1.5">
+                          <span className="text-xs font-semibold">{ph.title}</span>
+                          <span className="text-xs text-muted-foreground">{formatCurrency(sub)}</span>
+                        </div>
+                        <ul className="divide-y divide-border/50">
+                          {list.map((it: any) => {
+                            const done = it.status === "completed";
+                            return (
+                              <li key={it.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+                                <input type="checkbox" checked={done} disabled={!canEditClinical || updateItemStatus.isPending}
+                                  onChange={() => updateItemStatus.mutate({ id: it.id, status: done ? "pending" : "completed" })}
+                                  aria-label={`Mark ${it.description} ${done ? "not done" : "done"}`} className="h-4 w-4 accent-primary" />
+                                <span className={`flex-1 min-w-0 ${done ? "line-through text-muted-foreground" : ""}`}>
+                                  {it.description}
+                                  {it.tooth_number && <span className="ml-1 text-xs text-muted-foreground">· tooth {it.tooth_number}</span>}
+                                </span>
+                                <span className="text-xs font-medium shrink-0">{formatCurrency(Number(it.estimated_cost || 0))}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                   <div className="flex justify-between text-xs border-t pt-2">
-                    <span className="text-muted-foreground">Total: {formatCurrency(Number(plan.total_cost))}</span>
-                    <span className="text-muted-foreground">Paid: {formatCurrency(Number(plan.paid_amount))}</span>
-                    <span className="font-medium text-red-600">Due: {formatCurrency(Number(plan.total_cost) - Number(plan.paid_amount))}</span>
+                    <span className="text-muted-foreground">Estimated total</span>
+                    <span className="font-medium">{formatCurrency(total)}</span>
                   </div>
                 </CardContent>
               </Card>
