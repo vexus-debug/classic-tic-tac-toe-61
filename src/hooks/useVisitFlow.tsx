@@ -102,6 +102,7 @@ export function useAddChartItemToPlan() {
       qc.invalidateQueries({ queryKey: ["treatment-plans"] });
       qc.invalidateQueries({ queryKey: ["treatment-plan-items"] });
       qc.invalidateQueries({ queryKey: ["patient-plan-items", v.patient_id] });
+      qc.invalidateQueries({ queryKey: ["patient-treatment-plans", v.patient_id] });
       toast({ title: "Added to treatment plan", description: `${v.description} · tooth #${v.tooth_number}` });
     },
     onError: (e: any) => toast({ title: "Could not add to plan", description: e.message, variant: "destructive" }),

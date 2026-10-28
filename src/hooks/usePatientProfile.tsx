@@ -49,7 +49,7 @@ export function usePatientTreatmentPlans(patientId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("treatment_plans")
-        .select("*, treatment_plan_procedures(*)")
+        .select("*, treatment_plan_items(*)")
         .eq("patient_id", patientId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
