@@ -8,6 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 import { CreateLabCaseDialog } from "@/components/dashboard/CreateLabCaseDialog";
 import { useLabOrders } from "@/hooks/useLabOrders";
+import { useLabCases } from "@/hooks/useLabCases";
+import { LabCaseDetailDialog } from "@/components/dashboard/LabCaseDetailDialog";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
@@ -37,6 +39,10 @@ export default function LabWorkPage() {
   const [prefill] = useState(() => ({ tooth: searchParams.get("tooth") || undefined, shade: searchParams.get("shade") || undefined, work: searchParams.get("work") || undefined }));
   useEffect(() => { if (consumeFlag("new")) setLabOpen(true); }, [consumeFlag]);
   const { data: labOrders = [], isLoading } = useLabOrders();
+  // Deep-link from a patient's lab case card: ?caseId=... opens that ticket.
+  const [caseId, setCaseId] = useState<string | null>(() => searchParams.get("caseId"));
+  const { data: labCases = [] } = useLabCases();
+  const linkedCase = caseId ? labCases.find((c) => c.id === caseId) || null : null;
 
   const statuses = ["pending", "sent", "in-progress", "completed"] as const;
 
@@ -159,6 +165,7 @@ export default function LabWorkPage() {
           })}
         </motion.div>
       )}
+      <LabCaseDetailDialog labCase={linkedCase} open={!!linkedCase} onOpenChange={(o) => !o && setCaseId(null)} />
       <CreateLabCaseDialog open={labOpen} onOpenChange={setLabOpen} preselectedPatientId={patientId || undefined} preselectedTooth={prefill.tooth} preselectedShade={prefill.shade} preselectedWork={prefill.work} />
     </div>
   );

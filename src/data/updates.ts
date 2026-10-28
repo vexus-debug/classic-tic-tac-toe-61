@@ -13,6 +13,17 @@ export interface UpdateEntry {
 
 export const updates: UpdateEntry[] = [
   {
+    version: "v2.8.1",
+    date: "October 28, 2026",
+    title: "Faster lab orders from the patient record",
+    kind: "improvement",
+    items: [
+      { kind: "improvement", text: "When reception or assistants order lab work, the patient's most recent dentist is filled in automatically." },
+      { kind: "improvement", text: "The latest clinical note, tooth and shade are carried into the lab order so nothing is re-typed." },
+      { kind: "feature", text: "Each lab case on a patient's record has an \"Open in lab queue\" link that jumps straight to that ticket." },
+    ],
+  },
+  {
     version: "v2.8.0",
     date: "October 28, 2026",
     title: "Lab cases on the patient record",
