@@ -25,6 +25,8 @@ import { useDentists } from "@/hooks/useStaff";
 import { useCreateLabCase } from "@/hooks/useLabCases";
 import { useClinicTerms } from "@/hooks/useClinicTerms";
 import { useAuth } from "@/hooks/useAuth";
+import { usePatientVisits } from "@/hooks/usePatientProfile";
+import { pickDefaultDentist, latestClinicalNote } from "@/lib/labCasePrefill";
 
 const JOB_INSTRUCTION_OPTIONS = [
   "Courier Charge",
@@ -120,6 +122,7 @@ export function CreateLabCaseDialog({ open, onOpenChange, preselectedPatientId, 
   const terms = useClinicTerms();
   const { data: patients = [] } = usePatients();
   const { data: dentists = [] } = useDentists();
+  const { data: visits = [] } = usePatientVisits(preselectedPatientId);
   const createLabCase = useCreateLabCase();
   const [showMore, setShowMore] = useState(false);
 
@@ -134,17 +137,18 @@ export function CreateLabCaseDialog({ open, onOpenChange, preselectedPatientId, 
   useEffect(() => {
     if (!open) return;
     const v = emptyValues(preselectedPatientId);
-    // The signed-in dentist is the clinician by default.
-    const me = dentists.find((d: any) => d.user_id && d.user_id === user?.id);
-    if (me) v.dentistId = me.id;
+    // Signed-in dentist first; otherwise the patient's most recent attending dentist.
+    v.dentistId = pickDefaultDentist(dentists as any[], user?.id, visits as any[]);
     if (preselectedTooth) v.jobDescription = `Tooth #${preselectedTooth}${preselectedWork ? ` — ${preselectedWork}` : ""}`;
     if (preselectedShade) v.shade = preselectedShade;
+    const note = latestClinicalNote(visits as any[]);
+    if (note) v.instructions = `Clinical note: ${note}`;
     const known = (JOB_INSTRUCTION_OPTIONS as readonly string[]).find((j) => preselectedWork && j.toLowerCase().includes(preselectedWork.toLowerCase().split(" ")[0]));
     if (known) v.jobInstructions = [known];
     form.reset(v);
-    setShowMore(!!(preselectedTooth || preselectedShade));
+    setShowMore(!!(preselectedTooth || preselectedShade || note));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, preselectedPatientId, preselectedTooth, preselectedShade, dentists.length]);
+  }, [open, preselectedPatientId, preselectedTooth, preselectedShade, dentists.length, visits.length]);
 
   function onSubmit(data: LabCaseFormValues) {
     const workType = data.jobInstructions.join(", ");
