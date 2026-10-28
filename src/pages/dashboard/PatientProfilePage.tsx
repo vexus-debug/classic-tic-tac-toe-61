@@ -779,7 +779,7 @@ export default function PatientProfilePage() {
             <PatientLabCasesSection
               patientId={patientId}
               onOrder={() => setLabCaseOpen(true)}
-              onOpenCentral={() => navigate(`${basePath}/lab-work`)}
+              onOpenCentral={(caseId) => navigate(`${basePath}/lab-work${caseId ? `?caseId=${caseId}` : ""}`)}
             />
           )}
         </TabsContent>

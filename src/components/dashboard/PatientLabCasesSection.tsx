@@ -14,7 +14,8 @@ const STATUS: Record<string, { label: string; variant: "secondary" | "default" |
   delivered: { label: "Delivered", variant: "default" },
 };
 
-export const isLabCaseActive = (c: Pick<LabCaseRow, "status">) => c.status !== "delivered";
+export { isLabCaseActive } from "@/lib/labCasePrefill";
+import { isLabCaseActive } from "@/lib/labCasePrefill";
 
 export function usePatientLabCases(patientId?: string) {
   const q = useLabCases();
@@ -25,7 +26,7 @@ export function usePatientLabCases(patientId?: string) {
 interface Props {
   patientId: string;
   onOrder: () => void;
-  onOpenCentral: () => void;
+  onOpenCentral: (caseId?: string) => void;
 }
 
 export function PatientLabCasesSection({ patientId, onOrder, onOpenCentral }: Props) {
@@ -46,7 +47,7 @@ export function PatientLabCasesSection({ patientId, onOrder, onOpenCentral }: Pr
           <span><strong>{stats.ready}</strong> <span className="text-muted-foreground">ready to fit</span></span>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={onOpenCentral}><ExternalLink className="mr-1 h-4 w-4" /> All lab work</Button>
+          <Button size="sm" variant="outline" onClick={() => onOpenCentral()}><ExternalLink className="mr-1 h-4 w-4" /> All lab work</Button>
           <Button size="sm" onClick={onOrder}><Plus className="mr-1 h-4 w-4" /> Order lab case</Button>
         </div>
       </div>
@@ -88,6 +89,11 @@ export function PatientLabCasesSection({ patientId, onOrder, onOpenCentral }: Pr
                     </span>
                   )}
                   {c.completed_date && <span>Delivered {format(parseISO(c.completed_date), "d MMM yyyy")}</span>}
+                  <span role="link" tabIndex={0} className="ml-auto font-medium text-primary hover:underline"
+                    onClick={(e) => { e.stopPropagation(); onOpenCentral(c.id); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onOpenCentral(c.id); } }}>
+                    Open in lab queue
+                  </span>
                 </div>
               </button>
             );

@@ -34,6 +34,7 @@ export function usePatientVisits(patientId: string | undefined) {
         date: a.appointment_date,
         treatment: a.treatments?.name || "General Visit",
         dentist: a.staff?.full_name || "Unknown",
+        dentistId: a.staff_id || null,
         notes: a.notes || "",
         cost: Number(a.treatments?.price || 0),
       }));
