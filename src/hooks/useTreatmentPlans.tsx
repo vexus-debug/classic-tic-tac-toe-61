@@ -148,6 +148,7 @@ export function useUpdatePlanItemStatus() {
       qc.invalidateQueries({ queryKey: ["treatment-plan-items"] });
       qc.invalidateQueries({ queryKey: ["treatment-plans"] });
       qc.invalidateQueries({ queryKey: ["patient-plan-items"] });
+      qc.invalidateQueries({ queryKey: ["patient-treatment-plans"] });
       toast({ title: "Visit status updated" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),

@@ -13,6 +13,19 @@ export interface UpdateEntry {
 
 export const updates: UpdateEntry[] = [
   {
+    version: "v2.9.0",
+    date: "October 28, 2026",
+    title: "Tooth chart and phased plans on the patient record",
+    kind: "feature",
+    items: [
+      { kind: "feature", text: "The patient's history tab now shows a full 32-tooth chart with an FDI / Universal numbering switch." },
+      { kind: "feature", text: "Tap any tooth to record caries, restorations, crowns, root canals or missing teeth, with surfaces." },
+      { kind: "feature", text: "One tap adds the charted finding to the treatment plan with tooth, surface and catalog fee filled in." },
+      { kind: "improvement", text: "Treatment plans are grouped into four clinical phases with per-phase totals and tick-to-complete items." },
+      { kind: "fix", text: "Treatment plans on the patient record now load their procedures correctly." },
+    ],
+  },
+  {
     version: "v2.8.1",
     date: "October 28, 2026",
     title: "Faster lab orders from the patient record",
